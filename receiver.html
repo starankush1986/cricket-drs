@@ -138,6 +138,22 @@
         let socket;
         let clearResultTimer = null;
 
+        const audioUrls = {
+            'BALL': 'https://freesound.org/data/previews/586/586455_13234060-lq.ogg',
+            'WICKET': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
+            'CAUGHT OUT': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
+            'LBW OUT': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
+            '0': 'https://freesound.org/data/previews/587/587428_13234060-lq.ogg',
+            '1': 'https://freesound.org/data/previews/587/587426_13234060-lq.ogg',
+            '2': 'https://freesound.org/data/previews/587/587431_13234060-lq.ogg',
+            '3': 'https://freesound.org/data/previews/587/587728_13234060-lq.ogg',
+            '4': 'https://freesound.org/data/previews/587/587430_13234060-lq.ogg',
+            '6': 'https://freesound.org/data/previews/587/587432_13234060-lq.ogg',
+            'WIDE': 'https://freesound.org/data/previews/586/586601_13234060-lq.ogg',
+            'NO BALL': 'https://freesound.org/data/previews/587/587429_13234060-lq.ogg',
+            'FREE HIT': 'https://freesound.org/data/previews/586/586601_13234060-lq.ogg'
+        };
+
         window.onload = function() {
             createSocket();
             updateStatus();
@@ -174,6 +190,20 @@
 
             const eventText = payload && payload.event ? String(payload.event) : 'EVENT';
             showResult(eventText);
+            playAudio(eventText);
+        }
+
+        function playAudio(eventName) {
+            const audioUrl = audioUrls[eventName];
+            if(!audioUrl) return;
+
+            try {
+                const audio = new Audio(audioUrl);
+                audio.volume = 1.0;
+                audio.play().catch(err => console.log('Audio play failed:', err));
+            } catch(e) {
+                console.log('Audio error:', e);
+            }
         }
 
         function showResult(text) {
