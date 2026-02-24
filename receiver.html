@@ -46,12 +46,6 @@
             font-size: 34px;
             font-weight: bold;
             color: #1e3c72;
-            transition: opacity 0.3s ease, color 0.3s ease;
-        }
-
-        .result-box.sender-offline {
-            opacity: 0.4;
-            color: #ccc;
         }
 
         .section {
@@ -110,6 +104,11 @@
             text-align: center;
             font-weight: bold;
             background: transparent;
+            transition: opacity 0.3s ease;
+        }
+
+        .status.sender-offline {
+            opacity: 0.4;
         }
 
         .sender-status {
@@ -118,6 +117,11 @@
             gap: 8px;
             font-weight: bold;
             margin-bottom: 8px;
+            transition: opacity 0.3s ease;
+        }
+
+        .sender-status.sender-offline {
+            opacity: 0.4;
         }
 
         .sender-dot {
@@ -288,7 +292,8 @@
         function updateSenderStatus(data) {
             const dot = document.getElementById('senderDot');
             const text = document.getElementById('senderText');
-            const resultBox = document.getElementById('result-box');
+            const statusSection = document.getElementById('senderStatus');
+            const statusDiv = document.getElementById('status');
             if(!dot || !text) return;
 
             const enabled = !!(data && data.enabled);
@@ -298,11 +303,19 @@
                 : '0 0 6px rgba(244, 67, 54, 0.8)';
             text.innerText = enabled ? 'Sender: ON' : 'Sender: OFF';
             
-            if(resultBox) {
+            if(statusSection) {
                 if(enabled) {
-                    resultBox.classList.remove('sender-offline');
+                    statusSection.classList.remove('sender-offline');
                 } else {
-                    resultBox.classList.add('sender-offline');
+                    statusSection.classList.add('sender-offline');
+                }
+            }
+            
+            if(statusDiv) {
+                if(enabled) {
+                    statusDiv.classList.remove('sender-offline');
+                } else {
+                    statusDiv.classList.add('sender-offline');
                 }
             }
         }
