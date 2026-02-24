@@ -129,7 +129,7 @@
         }
 
         .event-wicket {
-            background: #ff4444;
+            background: #1e3c72;
         }
         
         @keyframes pulse {
@@ -225,7 +225,7 @@
         <div class="section" id="events-panel">
             <div class="section-title">🏏 SEND EVENT</div>
             <div class="event-grid">
-                <button onclick="sendEvent('BALL')" id="btn-ball">Ball Chalu</button>
+                <button onclick="sendEvent('BALL')">Ball</button>
                 <button onclick="sendEvent('1')">1</button>
                 <button onclick="sendEvent('2')">2</button>
                 <button onclick="sendEvent('3')">3</button>
@@ -233,7 +233,12 @@
                 <button onclick="sendEvent('6')">6</button>
                 <button onclick="sendEvent('WIDE')">Wide</button>
                 <button onclick="sendEvent('NO BALL')">No Ball</button>
-                <button onclick="sendEvent('WICKET')" class="event-wicket" id="f1-btn" disabled>Wicket (F1)</button>
+                <button onclick="sendEvent('CAUGHT')" class="event-wicket">Caught</button>
+                <button onclick="sendEvent('LBW')" class="event-wicket">LBW</button>
+                <button onclick="sendEvent('BOWLED')" class="event-wicket">Bowled</button>
+                <button onclick="sendEvent('RUN OUT')" class="event-wicket">Run Out</button>
+                <button onclick="sendEvent('STUMPED')" class="event-wicket">Stumped</button>
+                <button onclick="sendEvent('HIT WICKET')" class="event-wicket">Hit Wicket</button>
             </div>
         </div>
     </div>
@@ -283,27 +288,17 @@
 
         function updateStatus() {
             const statusDiv = document.getElementById('status');
-            const f1Btn = document.getElementById('f1-btn');
 
             const serverReady = !!(socket && socket.connected);
             if(!serverReady) {
                 statusDiv.innerHTML = '🟡 Server connecting... (wait)';
                 statusDiv.style.background = '#fff3e0';
-                f1Btn.disabled = true;
                 return;
             }
 
             statusDiv.innerHTML = '🟢 Ready - Send events';
             statusDiv.style.background = '#e8f5e9';
-            f1Btn.disabled = false;
         }
-
-        document.addEventListener('keydown', function(e) {
-            if(e.key === 'F1') {
-                e.preventDefault();
-                sendEvent('WICKET');
-            }
-        });
     </script>
 </body>
 </html>
