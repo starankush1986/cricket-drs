@@ -129,6 +129,8 @@
         .event-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
+            grid-auto-rows: 1fr;
+            align-content: stretch;
             gap: 4px;
             flex: 1;
             overflow: auto;
@@ -140,6 +142,7 @@
             padding: 12px 8px;
             font-size: 18px;
             min-height: 50px;
+            height: 100%;
             background: #1e3c72;
             color: white;
             border: none;
@@ -389,11 +392,18 @@
 
             sendingEnabled = toggle.checked;
             setButtonsEnabled(sendingEnabled);
+            emitSenderStatus(sendingEnabled);
 
             toggle.addEventListener('change', () => {
                 sendingEnabled = toggle.checked;
                 setButtonsEnabled(sendingEnabled);
+                emitSenderStatus(sendingEnabled);
             });
+        }
+
+        function emitSenderStatus(enabled) {
+            if(!socket || !socket.connected) return;
+            socket.emit('sender_status', { enabled: !!enabled });
         }
 
         function setButtonsEnabled(enabled) {
@@ -417,6 +427,7 @@
             socket.on('connect', () => {
                 const light = document.getElementById('statusLight');
                 if(light) light.classList.remove('disconnected');
+                emitSenderStatus(sendingEnabled);
             });
 
             socket.on('disconnect', (reason) => {
