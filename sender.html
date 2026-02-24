@@ -125,7 +125,8 @@
 
         .event-grid button {
             width: 100%;
-            padding: 14px 10px;
+            padding: 16px 12px;
+            font-size: 13px;
         }
 
         .event-wicket {
@@ -160,6 +161,41 @@
             to { transform: translateX(0); opacity: 1; }
         }
 
+        .status-container {
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status-light {
+            width: 16px;
+            height: 16px;
+            border-radius: 50%;
+            background: #4caf50;
+            box-shadow: 0 0 10px rgba(76, 175, 80, 0.9);
+            transition: all 0.3s;
+            border: 2px solid rgba(255, 255, 255, 0.5);
+        }
+
+        .status-light.disconnected {
+            background: #f44336;
+            box-shadow: 0 0 10px rgba(244, 67, 54, 0.9);
+        }
+
+        .status-text {
+            color: #1e3c72;
+            font-weight: bold;
+            font-size: 14px;
+        }
+
+        .card {
+            position: relative;
+        }
+
         /* Compact areas so page itself doesn't scroll */
         #friends-list {
             max-height: 90px;
@@ -171,9 +207,37 @@
             overflow: auto;
         }
 
+        .status-light {
+            width: 16px;
+            height: 16px;
+        }
+
         @media (max-width: 480px) {
+            body {
+                padding: 0;
+                min-height: 100vh;
+            }
+
             .card {
-                padding: 14px;
+                width: 100%;
+                max-width: 100%;
+                padding: 12px;
+                border-radius: 0;
+                box-shadow: none;
+                max-height: 100vh;
+            }
+
+            .status-container {
+                top: 8px;
+            }
+
+            .status-text {
+                font-size: 12px;
+            }
+
+            .section {
+                padding: 10px;
+                margin-bottom: 8px;
             }
 
             h1 {
@@ -201,7 +265,8 @@
             }
 
             .event-grid button {
-                padding: 12px 8px;
+                padding: 14px 10px;
+                font-size: 12px;
             }
 
             #friends-list {
@@ -216,29 +281,37 @@
 </head>
 <body>
     <div class="card">
-        <h1>🏏 Sender</h1>
-        
-        <!-- STATUS -->
-        <div class="status" id="status">🟡 Server connecting... (wait)</div>
-
+        <div class="status-container">
+            <div class="status-light" id="statusLight"></div>
+            <span class="status-text">SENDER</span>
+        </div>
         <!-- EVENTS -->
         <div class="section" id="events-panel">
-            <div class="section-title">🏏 SEND EVENT</div>
             <div class="event-grid">
-                <button onclick="sendEvent('DOT BALL')">Dot Ball</button>
-                <button onclick="sendEvent('1')">1</button>
-                <button onclick="sendEvent('2')">2</button>
-                <button onclick="sendEvent('3')">3</button>
-                <button onclick="sendEvent('4')">4</button>
-                <button onclick="sendEvent('6')">6</button>
-                <button onclick="sendEvent('WIDE')">Wide</button>
-                <button onclick="sendEvent('NO BALL')">No Ball</button>
+                <button onclick="sendEvent('BALL')">Ball</button>
                 <button onclick="sendEvent('CAUGHT OUT')" class="event-wicket">Caught Out</button>
-                <button onclick="sendEvent('LBW')" class="event-wicket">LBW</button>
+                <button onclick="sendEvent('0')">0</button>
+                <button onclick="sendEvent('LBW OUT')" class="event-wicket">LBW Out</button>
+                <button onclick="sendEvent('1')">1</button>
                 <button onclick="sendEvent('BOWLED')" class="event-wicket">Bowled</button>
+                <button onclick="sendEvent('2')">2</button>
                 <button onclick="sendEvent('RUN OUT')" class="event-wicket">Run Out</button>
-                <button onclick="sendEvent('STUMPED')" class="event-wicket">Stumped</button>
+                <button onclick="sendEvent('3')">3</button>
+                <button onclick="sendEvent('STUMPED OUT')" class="event-wicket">Stumped Out</button>
+                <button onclick="sendEvent('4')">4</button>
+                <button onclick="sendEvent('WICKET')" class="event-wicket">Wicket</button>
+                <button onclick="sendEvent('6')">6</button>
                 <button onclick="sendEvent('HIT WICKET')" class="event-wicket">Hit Wicket</button>
+                <button onclick="sendEvent('NO BALL')">No Ball</button>
+                <button onclick="sendEvent('WIDE')">Wide</button>
+                <button onclick="sendEvent('WIDE+1')">Wide+1</button>
+                <button onclick="sendEvent('WIDE+2')">Wide+2</button>
+                <button onclick="sendEvent('WIDE+4')">Wide+4</button>
+                <button onclick="sendEvent('WIDE+6')">Wide+6</button>
+                <button onclick="sendEvent('NO BALL+1')">NB+1</button>
+                <button onclick="sendEvent('NO BALL+2')">NB+2</button>
+                <button onclick="sendEvent('NO BALL+4')">NB+4</button>
+                <button onclick="sendEvent('NO BALL+6')">NB+6</button>
             </div>
         </div>
     </div>
@@ -261,16 +334,17 @@
             });
 
             socket.on('connect', () => {
-                updateStatus();
+                const light = document.getElementById('statusLight');
+                if(light) light.classList.remove('disconnected');
             });
 
             socket.on('disconnect', (reason) => {
-                updateStatus();
+                const light = document.getElementById('statusLight');
+                if(light) light.classList.add('disconnected');
             });
 
             socket.on('connect_error', (err) => {
                 console.error(err);
-                updateStatus();
             });
         }
 
@@ -284,20 +358,6 @@
                 type: 'EVENT',
                 payload: { event: eventName }
             });
-        }
-
-        function updateStatus() {
-            const statusDiv = document.getElementById('status');
-
-            const serverReady = !!(socket && socket.connected);
-            if(!serverReady) {
-                statusDiv.innerHTML = '🟡 Server connecting... (wait)';
-                statusDiv.style.background = '#fff3e0';
-                return;
-            }
-
-            statusDiv.innerHTML = '🟢 Ready - Send events';
-            statusDiv.style.background = '#e8f5e9';
         }
     </script>
 </body>
