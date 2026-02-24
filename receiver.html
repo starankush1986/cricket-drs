@@ -46,6 +46,12 @@
             font-size: 34px;
             font-weight: bold;
             color: #1e3c72;
+            transition: opacity 0.3s ease, color 0.3s ease;
+        }
+
+        .result-box.sender-offline {
+            opacity: 0.4;
+            color: #ccc;
         }
 
         .section {
@@ -106,6 +112,22 @@
             background: transparent;
         }
 
+        .sender-status {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            font-weight: bold;
+            margin-bottom: 8px;
+        }
+
+        .sender-dot {
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: #f44336;
+            box-shadow: 0 0 6px rgba(244, 67, 54, 0.8);
+        }
+
         #wicket-flash {
             display: none;
             background: #ff4444;
@@ -132,6 +154,10 @@
 
         <h1>🏏 Receiver</h1>
 
+        <div class="sender-status" id="senderStatus">
+            <span class="sender-dot" id="senderDot"></span>
+            <span id="senderText">Sender: OFF</span>
+        </div>
         <div class="status" id="status">🟡 Server connecting... (wait)</div>
     </div>
 
@@ -195,6 +221,10 @@
             socket.on('event', (data) => {
                 handleEvent(data);
             });
+
+            socket.on('sender_status', (data) => {
+                updateSenderStatus(data);
+            });
         }
 
         function handleEvent(data) {
@@ -253,6 +283,28 @@
 
             statusDiv.innerText = '🟢 Listening for events...';
             statusDiv.style.background = '#e8f5e9';
+        }
+
+        function updateSenderStatus(data) {
+            const dot = document.getElementById('senderDot');
+            const text = document.getElementById('senderText');
+            const resultBox = document.getElementById('result-box');
+            if(!dot || !text) return;
+
+            const enabled = !!(data && data.enabled);
+            dot.style.background = enabled ? '#4caf50' : '#f44336';
+            dot.style.boxShadow = enabled
+                ? '0 0 6px rgba(76, 175, 80, 0.8)'
+                : '0 0 6px rgba(244, 67, 54, 0.8)';
+            text.innerText = enabled ? 'Sender: ON' : 'Sender: OFF';
+            
+            if(resultBox) {
+                if(enabled) {
+                    resultBox.classList.remove('sender-offline');
+                } else {
+                    resultBox.classList.add('sender-offline');
+                }
+            }
         }
     </script>
 </body>
