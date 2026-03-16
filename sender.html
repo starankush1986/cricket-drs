@@ -1,6 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
     <title>🏏 Cricket DRS - Sender</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
@@ -323,12 +324,12 @@
 
             .event-grid button {
                 padding: 10px 8px;
-                font-size: 20px;
-                min-height: 64px;
+                font-size: 22px;
+                min-height: 72px;
             }
 
             .event-grid {
-                grid-auto-rows: minmax(64px, auto);
+                grid-auto-rows: minmax(72px, auto);
                 gap: 6px;
             }
 
@@ -396,10 +397,13 @@
 
     <script>
         let socket;
+        let liveSocket;
         let sendingEnabled = true;
+        const LIVE_API_URL = 'https://api.cricketking.live';
 
         window.onload = function() {
             createSocket();
+            createLiveSocket();
             initToggle();
         };
 
@@ -419,8 +423,13 @@
         }
 
         function emitSenderStatus(enabled) {
-            if(!socket || !socket.connected) return;
-            socket.emit('sender_status', { enabled: !!enabled });
+            if(socket && socket.connected) {
+                socket.emit('sender_status', { enabled: !!enabled });
+            }
+
+            if(enabled && liveSocket && liveSocket.connected) {
+                liveSocket.emit('iam_sender');
+            }
         }
 
         function setButtonsEnabled(enabled) {
@@ -457,20 +466,52 @@
             });
         }
 
+        function createLiveSocket() {
+            liveSocket = io(LIVE_API_URL, {
+                transports: ['websocket', 'polling'],
+                reconnection: true,
+                reconnectionAttempts: Infinity,
+                reconnectionDelay: 500,
+                reconnectionDelayMax: 5000,
+                timeout: 20000
+            });
+
+            liveSocket.on('connect', () => {
+                if(sendingEnabled) {
+                    liveSocket.emit('iam_sender');
+                }
+            });
+
+            liveSocket.on('connect_error', (err) => {
+                console.error('Live socket error:', err);
+            });
+        }
+
         function sendEvent(eventName) {
             if(!sendingEnabled) {
                 return;
             }
 
-            if(!socket || !socket.connected) {
+            const localConnected = !!(socket && socket.connected);
+            const liveConnected = !!(liveSocket && liveSocket.connected);
+
+            if(!localConnected && !liveConnected) {
                 alert('Server connect nahi hai. Thoda wait karo.');
                 return;
             }
 
-            socket.emit('broadcast', {
+            const eventData = {
                 type: 'EVENT',
                 payload: { event: eventName }
-            });
+            };
+
+            if(localConnected) {
+                socket.emit('broadcast', eventData);
+            }
+
+            if(liveConnected) {
+                liveSocket.emit('event', eventData);
+            }
         }
     </script>
 </body>
