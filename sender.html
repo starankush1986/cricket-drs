@@ -143,6 +143,9 @@
             font-size: 18px;
             min-height: 50px;
             height: 100%;
+            line-height: 1.15;
+            white-space: normal;
+            overflow-wrap: anywhere;
             background: #1e3c72;
             color: white;
             border: none;
@@ -319,8 +322,14 @@
             }
 
             .event-grid button {
-                padding: 18px 12px;
-                font-size: 40px;
+                padding: 10px 8px;
+                font-size: 20px;
+                min-height: 64px;
+            }
+
+            .event-grid {
+                grid-auto-rows: minmax(64px, auto);
+                gap: 6px;
             }
 
             #friends-list {
@@ -368,6 +377,12 @@
                 <button onclick="sendEvent('HIT WICKET')" class="event-wicket">Hit Wicket</button>
                 <button onclick="sendEvent('STUMPED OUT')" class="event-wicket">Stumped Out</button>
                 <button onclick="sendEvent('NOT OUT')">Not Out</button>
+                <button onclick="sendEvent('DRINK')">Drink</button>
+                <button onclick="sendEvent('SPINNER')">Spinner</button>
+                <button onclick="sendEvent('FASTER')">Faster</button>
+                <button onclick="sendEvent('BREAK')">Break</button>
+                <button onclick="sendEvent('CATCH DROP')">Catch Drop</button>
+                <button onclick="sendEvent('REVIEW')">Review</button>
                 <button onclick="sendEvent('WIDE+1')">Wide+1</button>
                 <button onclick="sendEvent('WIDE+2')">Wide+2</button>
                 <button onclick="sendEvent('WIDE+4')">Wide+4</button>
