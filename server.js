@@ -31,6 +31,10 @@ io.on('connection', (socket) => {
     socket.broadcast.emit('event', { type, payload, time: Date.now() });
   });
 
+  socket.on('sender_status', ({ enabled }) => {
+    io.emit('sender_status', { enabled: !!enabled, time: Date.now() });
+  });
+
   socket.on('disconnect', () => {
     // Cleanup on disconnect
   });
