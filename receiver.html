@@ -98,30 +98,21 @@
             cursor: pointer;
         }
 
-        .status {
-            padding: 12px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-            background: transparent;
-            transition: opacity 0.3s ease;
-        }
-
-        .status.sender-offline {
-            opacity: 0.4;
-        }
-
         .sender-status {
-            display: inline-flex;
+            display: flex;
             align-items: center;
+            justify-content: center;
             gap: 8px;
             font-weight: bold;
-            margin-bottom: 8px;
-            transition: opacity 0.3s ease;
+            padding: 12px;
+            border-radius: 8px;
+            background: #e8f5e9;
+            transition: opacity 0.3s ease, background 0.3s ease;
         }
 
         .sender-status.sender-offline {
             opacity: 0.4;
+            background: #ffebee;
         }
 
         .sender-dot {
@@ -159,51 +150,61 @@
 
         <h1>🏏 Receiver</h1>
 
-        <div class="sender-status" id="senderStatus">
+        <div class="sender-status sender-offline" id="senderStatus">
             <span class="sender-dot" id="senderDot"></span>
-            <span id="senderText">Sender: OFF</span>
+            <span id="senderText">Sender</span>
         </div>
-        <div class="status" id="status">🟡 Server connecting... (wait)</div>
     </div>
 
     <script>
         let socket;
         let clearResultTimer = null;
+        const audioCache = {};
 
         const audioUrls = {
-            'BALL': 'https://freesound.org/data/previews/586/586455_13234060-lq.ogg',
-            'WICKET': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            'CAUGHT OUT': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            'LBW OUT': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            'BOWLED': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            'RUN OUT': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            'STUMPED OUT': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            'HIT WICKET': 'https://freesound.org/data/previews/586/586597_13234060-lq.ogg',
-            '0': 'https://freesound.org/data/previews/587/587428_13234060-lq.ogg',
-            '1': 'https://freesound.org/data/previews/587/587426_13234060-lq.ogg',
-            '2': 'https://freesound.org/data/previews/587/587431_13234060-lq.ogg',
-            '3': 'https://freesound.org/data/previews/587/587728_13234060-lq.ogg',
-            '4': 'https://freesound.org/data/previews/587/587430_13234060-lq.ogg',
-            '6': 'https://freesound.org/data/previews/587/587432_13234060-lq.ogg',
-            'WIDE': 'https://freesound.org/data/previews/586/586601_13234060-lq.ogg',
-            'WIDE+1': 'https://freesound.org/data/previews/586/586601_13234060-lq.ogg',
-            'WIDE+2': 'https://freesound.org/data/previews/586/586601_13234060-lq.ogg',
-            'WIDE+4': 'https://freesound.org/data/previews/586/586601_13234060-lq.ogg',
-            'HAWA MAI': 'https://cdn.freesound.org/previews/592/592557_13234060-lq.ogg',
-            'APPEAL': 'https://cdn.freesound.org/previews/592/592556_13234060-lq.ogg',
-            'BALL STOP': 'https://cdn.freesound.org/previews/592/592550_13234060-lq.ogg',
-            'NOT OUT': 'https://cdn.freesound.org/previews/592/592549_13234060-lq.ogg',
-            'NO BALL': 'https://freesound.org/data/previews/587/587429_13234060-lq.ogg',
-            'NO BALL+1': 'https://freesound.org/data/previews/587/587429_13234060-lq.ogg',
-            'NO BALL+2': 'https://freesound.org/data/previews/587/587429_13234060-lq.ogg',
-            'NO BALL+4': 'https://freesound.org/data/previews/587/587429_13234060-lq.ogg',
-            'NO BALL+6': 'https://freesound.org/data/previews/587/587429_13234060-lq.ogg'
+            'BALL': '/audio/ball.ogg',
+            'WICKET': '/audio/wicket.ogg',
+            'CAUGHT OUT': '/audio/wicket.ogg',
+            'LBW OUT': '/audio/wicket.ogg',
+            'BOWLED': '/audio/wicket.ogg',
+            'RUN OUT': '/audio/wicket.ogg',
+            'STUMPED OUT': '/audio/wicket.ogg',
+            'HIT WICKET': '/audio/wicket.ogg',
+            '0': '/audio/0.ogg',
+            '1': '/audio/1.ogg',
+            '2': '/audio/2.ogg',
+            '3': '/audio/3.ogg',
+            '4': '/audio/4.ogg',
+            '6': '/audio/6.ogg',
+            'WIDE': '/audio/wide.ogg',
+            'WIDE+1': '/audio/wide.ogg',
+            'WIDE+2': '/audio/wide.ogg',
+            'WIDE+4': '/audio/wide.ogg',
+            'HAWA MAI': '/audio/hawa-mai.ogg',
+            'APPEAL': '/audio/appeal.ogg',
+            'BALL STOP': '/audio/ball-stop.ogg',
+            'NOT OUT': '/audio/not-out.ogg',
+            'NO BALL': '/audio/no-ball.ogg',
+            'NO BALL+1': '/audio/no-ball.ogg',
+            'NO BALL+2': '/audio/no-ball.ogg',
+            'NO BALL+4': '/audio/no-ball.ogg',
+            'NO BALL+6': '/audio/no-ball.ogg'
         };
 
         window.onload = function() {
+            preloadAudio();
             createSocket();
-            updateStatus();
         };
+
+        function preloadAudio() {
+            const uniqueSrcs = [...new Set(Object.values(audioUrls))];
+            uniqueSrcs.forEach((src) => {
+                const audio = new Audio(src);
+                audio.preload = 'auto';
+                audio.load();
+                audioCache[src] = audio;
+            });
+        }
 
         function createSocket() {
             socket = io({
@@ -213,14 +214,6 @@
                 reconnectionDelay: 500,
                 reconnectionDelayMax: 5000,
                 timeout: 20000
-            });
-
-            socket.on('connect', () => {
-                updateStatus();
-            });
-
-            socket.on('disconnect', () => {
-                updateStatus();
             });
 
             socket.on('event', (data) => {
@@ -248,9 +241,10 @@
             if(!audioUrl) return;
 
             try {
-                const audio = new Audio(audioUrl);
-                audio.volume = 1.0;
-                audio.play().catch(err => console.log('Audio play failed:', err));
+                const cached = audioCache[audioUrl];
+                const clip = cached ? cached.cloneNode() : new Audio(audioUrl);
+                clip.volume = 1.0;
+                clip.play().catch(err => console.log('Audio play failed:', err));
             } catch(e) {
                 console.log('Audio error:', e);
             }
@@ -276,48 +270,21 @@
             }, 5000);
         }
 
-        function updateStatus() {
-            const statusDiv = document.getElementById('status');
-
-            const serverReady = !!(socket && socket.connected);
-            if(!serverReady) {
-                statusDiv.innerText = '🟡 Listening... (wait)';
-                statusDiv.style.background = '#fff3e0';
-                return;
-            }
-
-            statusDiv.innerText = '🟢 Listening for events...';
-            statusDiv.style.background = '#e8f5e9';
-        }
-
         function updateSenderStatus(data) {
             const dot = document.getElementById('senderDot');
-            const text = document.getElementById('senderText');
             const statusSection = document.getElementById('senderStatus');
-            const statusDiv = document.getElementById('status');
-            if(!dot || !text) return;
+            if(!dot || !statusSection) return;
 
             const enabled = !!(data && data.enabled);
             dot.style.background = enabled ? '#4caf50' : '#f44336';
             dot.style.boxShadow = enabled
                 ? '0 0 6px rgba(76, 175, 80, 0.8)'
                 : '0 0 6px rgba(244, 67, 54, 0.8)';
-            text.innerText = enabled ? 'Sender: ON' : 'Sender: OFF';
-            
-            if(statusSection) {
-                if(enabled) {
-                    statusSection.classList.remove('sender-offline');
-                } else {
-                    statusSection.classList.add('sender-offline');
-                }
-            }
-            
-            if(statusDiv) {
-                if(enabled) {
-                    statusDiv.classList.remove('sender-offline');
-                } else {
-                    statusDiv.classList.add('sender-offline');
-                }
+
+            if(enabled) {
+                statusSection.classList.remove('sender-offline');
+            } else {
+                statusSection.classList.add('sender-offline');
             }
         }
     </script>

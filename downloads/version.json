@@ -1,0 +1,9 @@
+{
+  "versionName": "1.0.0",
+  "versionCode": 1,
+  "androidVersion": "1.0.0",
+  "androidVersionCode": 1,
+  "releaseNotes": "First Cricket DRS sender app.",
+  "apkUrl": "/downloads/cricket-drs.apk",
+  "force": false
+}

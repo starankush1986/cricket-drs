@@ -1,204 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+    <meta name="theme-color" content="#1e3c72">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
     <title>🏏 Cricket DRS - Sender</title>
     <script src="/socket.io/socket.io.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        body {
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+
+        html, body {
+            width: 100%;
+            height: 100%;
+            height: var(--app-height, 100dvh);
+            overflow: hidden;
             font-family: Arial, sans-serif;
             background: linear-gradient(135deg, #1e3c72, #2a5298);
-            width: 100%;
-            height: 100%;
+            -webkit-text-size-adjust: 100%;
+        }
+
+        body {
             display: flex;
-            align-items: center;
-            justify-content: center;
-            padding: 0;
-            margin: 0;
-            overflow: hidden;
             position: fixed;
+            inset: 0;
         }
-        
+
         .card {
-            background: rgba(255, 255, 255, 0.95);
-            border-radius: 0;
-            padding: 10px;
             width: 100%;
             height: 100%;
-            padding-bottom: calc(10px + env(safe-area-inset-bottom));
-            box-shadow: none;
+            background: rgba(255, 255, 255, 0.96);
             display: flex;
             flex-direction: column;
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-        
-        h1 {
-            color: #1e3c72;
-            text-align: center;
-            margin-bottom: 16px;
-            font-size: 24px;
-        }
-        
-        .section {
-            margin-bottom: 4px;
-            padding: 6px;
-            background: transparent;
-            border-radius: 0;
-            flex: 1;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .section-title {
-            font-size: 14px;
-            color: #666;
-            margin-bottom: 10px;
-            text-transform: uppercase;
-        }
-        
-        .id-box {
-            background: white;
-            border: 2px solid #1e3c72;
-            border-radius: 8px;
-            padding: 12px;
-            font-size: 18px;
-            font-weight: bold;
-            color: #1e3c72;
-            text-align: center;
-            margin-bottom: 10px;
-            word-break: break-all;
-        }
-        
-        .input-group {
-            display: flex;
-            gap: 10px;
-        }
-        
-        input {
-            flex: 1;
-            padding: 12px;
-            border: 2px solid #ddd;
-            border-radius: 8px;
-            font-size: 14px;
-        }
-        
-        input:focus {
-            outline: none;
-            border-color: #1e3c72;
-        }
-        
-        button {
-            padding: 12px 24px;
-            background: #1e3c72;
-            color: white;
-            border: none;
-            border-radius: 8px;
-            font-size: 14px;
-            font-weight: bold;
-            cursor: pointer;
-        }
-        
-        button:hover {
-            background: #1e3c72;
-        }
-        
-        button:active {
-            background: #4caf50;
-            box-shadow: inset 0 0 5px rgba(0,0,0,0.3);
-        }
-        
-        .f1-button {
-            width: 100%;
-            padding: 22px 16px;
-            background: #ff4444;
-            color: white;
-            font-size: 26px;
-            font-weight: bold;
-            border-radius: 15px;
-            margin: 10px 0;
-            animation: pulse 2s infinite;
-        }
-
-        .event-grid {
-            display: grid;
-            grid-template-columns: repeat(3, 1fr);
-            grid-auto-rows: 1fr;
-            align-content: stretch;
-            gap: 4px;
-            flex: 1;
-            overflow: auto;
-            -webkit-overflow-scrolling: touch;
-        }
-
-        .event-grid button {
-            width: 100%;
-            padding: 12px 8px;
-            font-size: 18px;
-            min-height: 50px;
-            height: 100%;
-            line-height: 1.15;
-            white-space: normal;
-            overflow-wrap: anywhere;
-            background: #1e3c72;
-            color: white;
-            border: none;
-            border-radius: 4px;
-            cursor: pointer;
-            font-weight: bold;
-        }
-
-        .event-wicket {
-            background: #1e3c72;
-        }
-        
-        @keyframes pulse {
-            0% { transform: scale(1); }
-            50% { transform: scale(1.02); }
-            100% { transform: scale(1); }
-        }
-        
-        .status {
-            background: #e8f5e9;
-            padding: 15px;
-            border-radius: 8px;
-            text-align: center;
-            font-weight: bold;
-        }
-        
-        .notification {
-            background: #1e3c72;
-            color: white;
-            padding: 10px;
-            border-radius: 8px;
-            margin: 6px 0;
-            animation: slideIn 0.3s;
-        }
-        
-        @keyframes slideIn {
-            from { transform: translateX(-100%); opacity: 0; }
-            to { transform: translateX(0); opacity: 1; }
+            padding: calc(6px + env(safe-area-inset-top)) 6px calc(6px + env(safe-area-inset-bottom));
         }
 
         .top-bar {
             display: flex;
             align-items: center;
-            gap: 10px;
             justify-content: center;
+            gap: 8px;
+            flex: 0 0 auto;
+            height: 36px;
             margin-bottom: 6px;
+        }
+
+        .top-bar-label {
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3c72;
         }
 
         .toggle-switch {
             position: relative;
-            width: 52px;
-            height: 28px;
+            width: 48px;
+            height: 26px;
         }
 
         .toggle-switch input {
@@ -210,10 +67,7 @@
         .toggle-slider {
             position: absolute;
             cursor: pointer;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
+            inset: 0;
             background-color: #cfd8dc;
             transition: 0.2s;
             border-radius: 999px;
@@ -222,8 +76,8 @@
         .toggle-slider:before {
             position: absolute;
             content: "";
-            height: 22px;
-            width: 22px;
+            height: 20px;
+            width: 20px;
             left: 3px;
             bottom: 3px;
             background-color: white;
@@ -236,116 +90,97 @@
         }
 
         .toggle-switch input:checked + .toggle-slider:before {
-            transform: translateX(24px);
+            transform: translateX(22px);
         }
 
         .status-light {
-            width: 16px;
-            height: 16px;
+            width: 14px;
+            height: 14px;
             border-radius: 50%;
             background: #4caf50;
-            box-shadow: 0 0 10px rgba(76, 175, 80, 0.9);
-            transition: all 0.3s;
+            box-shadow: 0 0 8px rgba(76, 175, 80, 0.9);
             border: 2px solid rgba(255, 255, 255, 0.5);
         }
 
         .status-light.disconnected {
             background: #f44336;
-            box-shadow: 0 0 10px rgba(244, 67, 54, 0.9);
+            box-shadow: 0 0 8px rgba(244, 67, 54, 0.9);
         }
 
-        .card {
-            position: relative;
+        .section {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: flex;
+            flex-direction: column;
         }
 
-        /* Compact areas so page itself doesn't scroll */
-        #friends-list {
-            max-height: 90px;
-            overflow: auto;
+        .event-grid {
+            flex: 1 1 auto;
+            min-height: 0;
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            grid-template-rows: repeat(9, minmax(0, 1fr));
+            gap: 4px;
+            overflow: hidden;
         }
 
-        #notifications {
-            max-height: 150px;
-            overflow: auto;
+        .event-grid button {
+            width: 100%;
+            height: 100%;
+            min-height: 0;
+            padding: 2px 3px;
+            border: none;
+            border-radius: 6px;
+            background: #1e3c72;
+            color: #fff;
+            font-weight: 700;
+            font-size: clamp(11px, 2.6vw + 0.55vh, 18px);
+            line-height: 1.1;
+            white-space: normal;
+            overflow: hidden;
+            overflow-wrap: anywhere;
+            cursor: pointer;
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+            user-select: none;
         }
 
-        .status-light {
-            width: 16px;
-            height: 16px;
+        .event-grid button:active {
+            background: #4caf50;
         }
 
-        @media (max-width: 480px) {
-            body {
-                padding: 0;
-                min-height: 100vh;
-            }
+        .event-grid button:disabled {
+            pointer-events: none;
+        }
 
-            .card {
-                width: 100%;
-                max-width: 100%;
-                padding: 12px;
-                border-radius: 0;
-                box-shadow: none;
-                max-height: 100vh;
-            }
-
-            .top-bar {
-                margin-bottom: 8px;
-            }
-
-            .section {
-                padding: 10px;
-                margin-bottom: 8px;
-            }
-
-            h1 {
-                font-size: 20px;
-                margin-bottom: 12px;
-            }
-
-            .section {
-                padding: 10px;
-                margin-bottom: 10px;
-            }
-
-            .id-box {
-                font-size: 16px;
-                padding: 10px;
-            }
-
-            button {
-                padding: 10px 14px;
-            }
-
-            .f1-button {
-                font-size: 22px;
-                padding: 18px 14px;
-            }
-
-            .event-grid button {
-                padding: 10px 8px;
-                font-size: 22px;
-                min-height: 72px;
-            }
-
+        @media (min-width: 700px) {
             .event-grid {
-                grid-auto-rows: minmax(72px, auto);
+                grid-template-columns: repeat(5, minmax(0, 1fr));
+                grid-template-rows: repeat(7, minmax(0, 1fr));
                 gap: 6px;
             }
 
-            #friends-list {
-                max-height: 72px;
+            .event-grid button {
+                font-size: clamp(14px, 1.4vw + 0.6vh, 22px);
+                border-radius: 8px;
             }
+        }
 
-            #notifications {
-                max-height: 110px;
+        @media (orientation: landscape) and (max-height: 500px) {
+            .top-bar { height: 28px; margin-bottom: 4px; }
+            .event-grid {
+                grid-template-columns: repeat(7, minmax(0, 1fr));
+                grid-template-rows: repeat(5, minmax(0, 1fr));
+                gap: 3px;
             }
+            .event-grid button { font-size: clamp(10px, 1.8vw + 0.8vh, 16px); }
         }
     </style>
 </head>
 <body>
     <div class="card">
         <div class="top-bar">
+            <span class="top-bar-label">Sender</span>
             <label class="toggle-switch" aria-label="Toggle sender on or off">
                 <input type="checkbox" id="senderToggle" checked>
                 <span class="toggle-slider"></span>
@@ -355,28 +190,26 @@
         <!-- EVENTS -->
         <div class="section" id="events-panel">
             <div class="event-grid">
-                <button style="visibility: hidden;"></button>
-                <button style="visibility: hidden;"></button>
-                <button onclick="sendEvent('WICKET')" class="event-wicket">Wicket</button>
+                <button onclick="sendEvent('WICKET')">Wicket</button>
                 <button onclick="sendEvent('BALL')">Ball</button>
                 <button onclick="sendEvent('0')">0</button>
-                <button onclick="sendEvent('CAUGHT OUT')" class="event-wicket">Caught Out</button>
                 <button onclick="sendEvent('1')">1</button>
-                <button onclick="sendEvent('4')">4</button>
-                <button onclick="sendEvent('BOWLED')" class="event-wicket">Bowled</button>
+                <button onclick="sendEvent('CAUGHT OUT')">Caught</button>
+                <button onclick="sendEvent('BOWLED')">Bowled</button>
                 <button onclick="sendEvent('2')">2</button>
-                <button onclick="sendEvent('6')">6</button>
-                <button onclick="sendEvent('RUN OUT')" class="event-wicket">Run Out</button>
+                <button onclick="sendEvent('4')">4</button>
+                <button onclick="sendEvent('RUN OUT')">Run Out</button>
+                <button onclick="sendEvent('LBW OUT')">LBW</button>
                 <button onclick="sendEvent('3')">3</button>
+                <button onclick="sendEvent('6')">6</button>
                 <button onclick="sendEvent('BALL STOP')">Ball Stop</button>
-                <button onclick="sendEvent('LBW OUT')" class="event-wicket">LBW Out</button>
                 <button onclick="sendEvent('NO BALL')">No Ball</button>
                 <button onclick="sendEvent('WIDE')">Wide</button>
                 <button onclick="sendEvent('FREE HIT')">Free Hit</button>
                 <button onclick="sendEvent('HAWA MAI')">Hawa Mai</button>
                 <button onclick="sendEvent('APPEAL')">Appeal</button>
-                <button onclick="sendEvent('HIT WICKET')" class="event-wicket">Hit Wicket</button>
-                <button onclick="sendEvent('STUMPED OUT')" class="event-wicket">Stumped Out</button>
+                <button onclick="sendEvent('HIT WICKET')">Hit Wicket</button>
+                <button onclick="sendEvent('STUMPED OUT')">Stumped</button>
                 <button onclick="sendEvent('NOT OUT')">Not Out</button>
                 <button onclick="sendEvent('DRINK')">Drink</button>
                 <button onclick="sendEvent('SPINNER')">Spinner</button>
@@ -401,7 +234,13 @@
         let sendingEnabled = true;
         const LIVE_API_URL = 'https://api.cricketking.live';
 
+        function fitScreen() {
+            document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
+        }
+
         window.onload = function() {
+            fitScreen();
+            window.addEventListener('resize', fitScreen);
             createSocket();
             createLiveSocket();
             initToggle();

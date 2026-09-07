@@ -1,0 +1,40 @@
+package live.cricketdrs.sender
+
+data class DrsEvent(val code: String, val label: String)
+
+val DRS_EVENTS = listOf(
+    DrsEvent("WICKET", "Wicket"),
+    DrsEvent("BALL", "Ball"),
+    DrsEvent("0", "0"),
+    DrsEvent("1", "1"),
+    DrsEvent("CAUGHT OUT", "Caught"),
+    DrsEvent("BOWLED", "Bowled"),
+    DrsEvent("2", "2"),
+    DrsEvent("4", "4"),
+    DrsEvent("RUN OUT", "Run Out"),
+    DrsEvent("LBW OUT", "LBW"),
+    DrsEvent("3", "3"),
+    DrsEvent("6", "6"),
+    DrsEvent("BALL STOP", "Ball Stop"),
+    DrsEvent("NO BALL", "No Ball"),
+    DrsEvent("WIDE", "Wide"),
+    DrsEvent("FREE HIT", "Free Hit"),
+    DrsEvent("HAWA MAI", "Hawa Mai"),
+    DrsEvent("APPEAL", "Appeal"),
+    DrsEvent("HIT WICKET", "Hit Wicket"),
+    DrsEvent("STUMPED OUT", "Stumped"),
+    DrsEvent("NOT OUT", "Not Out"),
+    DrsEvent("DRINK", "Drink"),
+    DrsEvent("SPINNER", "Spinner"),
+    DrsEvent("FASTER", "Faster"),
+    DrsEvent("BREAK", "Break"),
+    DrsEvent("CATCH DROP", "Catch Drop"),
+    DrsEvent("REVIEW", "Review"),
+    DrsEvent("WIDE+1", "Wide+1"),
+    DrsEvent("WIDE+2", "Wide+2"),
+    DrsEvent("WIDE+4", "Wide+4"),
+    DrsEvent("NO BALL+1", "NB+1"),
+    DrsEvent("NO BALL+2", "NB+2"),
+    DrsEvent("NO BALL+4", "NB+4"),
+    DrsEvent("NO BALL+6", "NB+6")
+)
