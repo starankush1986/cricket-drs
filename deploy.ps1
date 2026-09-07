@@ -3,7 +3,7 @@ $ErrorActionPreference = "Stop"
 Set-Location $PSScriptRoot
 
 ssh -o BatchMode=yes cricketdrs "mkdir -p /var/www/cricket-drs/audio /var/www/cricket-drs/downloads"
-scp -o BatchMode=yes server.js sender.html receiver.html package.json package-lock.json cricketdrs:/var/www/cricket-drs/
+scp -o BatchMode=yes server.js sender.html receiver.html package.json package-lock.json favicon.png cricketdrs:/var/www/cricket-drs/
 if (Test-Path "audio") {
     scp -o BatchMode=yes audio/*.ogg cricketdrs:/var/www/cricket-drs/audio/
 }
