@@ -30,6 +30,7 @@ val DRS_EVENTS = listOf(
     DrsEvent("BREAK", "Break"),
     DrsEvent("CATCH DROP", "Catch Drop"),
     DrsEvent("REVIEW", "Review"),
+    DrsEvent("THIRD UMPIRE", "3rd Umpire"),
     DrsEvent("WIDE+1", "Wide+1"),
     DrsEvent("WIDE+2", "Wide+2"),
     DrsEvent("WIDE+4", "Wide+4"),

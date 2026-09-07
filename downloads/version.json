@@ -1,9 +1,9 @@
 {
-  "versionName": "1.0.1",
-  "versionCode": 2,
-  "androidVersion": "1.0.1",
-  "androidVersionCode": 2,
-  "releaseNotes": "New app icon from Betting Assistant.",
+  "versionName": "1.0.2",
+  "versionCode": 3,
+  "androidVersion": "1.0.2",
+  "androidVersionCode": 3,
+  "releaseNotes": "Third Umpire button and Dapp commentary sounds.",
   "apkUrl": "/downloads/cricket-drs.apk",
   "force": false
 }

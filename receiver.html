@@ -125,6 +125,33 @@
             box-shadow: 0 0 6px rgba(244, 67, 54, 0.8);
         }
 
+        .sound-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 20;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: rgba(255, 255, 255, 0.92);
+            cursor: pointer;
+        }
+
+        .sound-gate.hidden { display: none; }
+
+        .sound-gate-card {
+            text-align: center;
+            color: #1e3c72;
+            font-weight: bold;
+            font-size: 22px;
+        }
+
+        .sound-gate-hint {
+            margin-top: 8px;
+            font-size: 14px;
+            font-weight: normal;
+            color: #666;
+        }
+
         #wicket-flash {
             display: none;
             background: #ff4444;
@@ -145,6 +172,12 @@
     </style>
 </head>
 <body>
+    <div class="sound-gate" id="soundGate">
+        <div class="sound-gate-card">
+            Sound on
+            <div class="sound-gate-hint">Tap anywhere — phir events ki awaz aayegi</div>
+        </div>
+    </div>
     <div class="card">
         <div class="section">
             <div class="result-box" id="result-box">&nbsp;</div>
@@ -161,51 +194,104 @@
     <script>
         let socket;
         let clearResultTimer = null;
+        let soundReady = false;
         const audioCache = {};
+        const probe = document.createElement('audio');
+        const audioExt = probe.canPlayType('audio/mpeg') ? '.mp3' : '.ogg';
 
         const audioUrls = {
-            'BALL': '/audio/ball.ogg',
-            'WICKET': '/audio/wicket.ogg',
-            'CAUGHT OUT': '/audio/wicket.ogg',
-            'LBW OUT': '/audio/wicket.ogg',
-            'BOWLED': '/audio/wicket.ogg',
-            'RUN OUT': '/audio/wicket.ogg',
-            'STUMPED OUT': '/audio/wicket.ogg',
-            'HIT WICKET': '/audio/wicket.ogg',
-            '0': '/audio/0.ogg',
-            '1': '/audio/1.ogg',
-            '2': '/audio/2.ogg',
-            '3': '/audio/3.ogg',
-            '4': '/audio/4.ogg',
-            '6': '/audio/6.ogg',
-            'WIDE': '/audio/wide.ogg',
-            'WIDE+1': '/audio/wide.ogg',
-            'WIDE+2': '/audio/wide.ogg',
-            'WIDE+4': '/audio/wide.ogg',
-            'HAWA MAI': '/audio/hawa-mai.ogg',
-            'APPEAL': '/audio/appeal.ogg',
-            'BALL STOP': '/audio/ball-stop.ogg',
-            'NOT OUT': '/audio/not-out.ogg',
-            'NO BALL': '/audio/no-ball.ogg',
-            'NO BALL+1': '/audio/no-ball.ogg',
-            'NO BALL+2': '/audio/no-ball.ogg',
-            'NO BALL+4': '/audio/no-ball.ogg',
-            'NO BALL+6': '/audio/no-ball.ogg'
+            'BALL': '/audio/ball',
+            'WICKET': '/audio/wicket',
+            'CAUGHT OUT': '/audio/catch-out',
+            'LBW OUT': '/audio/lbw',
+            'BOWLED': '/audio/bowled',
+            'RUN OUT': '/audio/run-out',
+            'STUMPED OUT': '/audio/stumped',
+            'HIT WICKET': '/audio/wicket',
+            '0': '/audio/0',
+            '1': '/audio/1',
+            '2': '/audio/2',
+            '3': '/audio/3',
+            '4': '/audio/4',
+            '6': '/audio/6',
+            'WIDE': '/audio/wide',
+            'WIDE+1': '/audio/wide',
+            'WIDE+2': '/audio/wide',
+            'WIDE+4': '/audio/wide',
+            'HAWA MAI': '/audio/hawa-mai',
+            'APPEAL': '/audio/appeal',
+            'BALL STOP': '/audio/ball-stop',
+            'NOT OUT': '/audio/not-out',
+            'NO BALL': '/audio/no-ball',
+            'NO BALL+1': '/audio/no-ball',
+            'NO BALL+2': '/audio/no-ball',
+            'NO BALL+4': '/audio/no-ball',
+            'NO BALL+6': '/audio/no-ball',
+            'FREE HIT': '/audio/free-hit',
+            'DRINK': '/audio/drink',
+            'SPINNER': '/audio/spinner',
+            'FASTER': '/audio/faster',
+            'BREAK': '/audio/break',
+            'CATCH DROP': '/audio/catch-drop',
+            'REVIEW': '/audio/review',
+            'THIRD UMPIRE': '/audio/third-umpire'
         };
 
         window.onload = function() {
             preloadAudio();
+            bindSoundGate();
             createSocket();
         };
 
+        function audioSrc(base) {
+            return base + audioExt;
+        }
+
         function preloadAudio() {
-            const uniqueSrcs = [...new Set(Object.values(audioUrls))];
+            const uniqueSrcs = [...new Set(Object.values(audioUrls).map(audioSrc))];
             uniqueSrcs.forEach((src) => {
                 const audio = new Audio(src);
                 audio.preload = 'auto';
                 audio.load();
                 audioCache[src] = audio;
             });
+        }
+
+        function bindSoundGate() {
+            const gate = document.getElementById('soundGate');
+            if (!gate) return;
+            const unlock = () => unlockSound();
+            gate.addEventListener('click', unlock);
+            gate.addEventListener('touchend', unlock, { passive: true });
+        }
+
+        function unlockSound() {
+            if (soundReady) return;
+            const gate = document.getElementById('soundGate');
+            Object.values(audioCache).forEach((audio) => {
+                try {
+                    audio.muted = true;
+                    audio.volume = 1;
+                    const playPromise = audio.play();
+                    if (playPromise && playPromise.then) {
+                        playPromise.then(() => {
+                            audio.pause();
+                            audio.currentTime = 0;
+                            audio.muted = false;
+                        }).catch(() => {
+                            audio.muted = false;
+                        });
+                    } else {
+                        audio.pause();
+                        audio.currentTime = 0;
+                        audio.muted = false;
+                    }
+                } catch (e) {
+                    audio.muted = false;
+                }
+            });
+            soundReady = true;
+            if (gate) gate.classList.add('hidden');
         }
 
         function createSocket() {
@@ -241,12 +327,24 @@
         function playAudio(eventName) {
             const audioUrl = audioUrls[eventName];
             if(!audioUrl) return;
+            if(!soundReady) {
+                const gate = document.getElementById('soundGate');
+                if (gate) gate.classList.remove('hidden');
+                return;
+            }
 
             try {
-                const cached = audioCache[audioUrl];
-                const clip = cached ? cached.cloneNode() : new Audio(audioUrl);
+                const src = audioSrc(audioUrl);
+                const clip = audioCache[src] || new Audio(src);
+                clip.muted = false;
                 clip.volume = 1.0;
-                clip.play().catch(err => console.log('Audio play failed:', err));
+                clip.pause();
+                clip.currentTime = 0;
+                clip.play().catch(() => {
+                    soundReady = false;
+                    const gate = document.getElementById('soundGate');
+                    if (gate) gate.classList.remove('hidden');
+                });
             } catch(e) {
                 console.log('Audio error:', e);
             }
