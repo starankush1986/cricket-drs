@@ -21,8 +21,8 @@ android {
         applicationId = "live.cricketdrs.sender"
         minSdk = 26
         targetSdk = 35
-        versionCode = 3
-        versionName = "1.0.2"
+        versionCode = 4
+        versionName = "1.0.3"
         buildConfigField("String", "API_BASE_URL", "\"https://cricketdrs.com\"")
     }
 

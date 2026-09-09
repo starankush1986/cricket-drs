@@ -139,6 +139,7 @@
         .sound-gate.hidden { display: none; }
 
         .sound-gate-card {
+            width: min(360px, 92vw);
             text-align: center;
             color: #1e3c72;
             font-weight: bold;
@@ -147,9 +148,43 @@
 
         .sound-gate-hint {
             margin-top: 8px;
+            margin-bottom: 16px;
             font-size: 14px;
             font-weight: normal;
             color: #666;
+        }
+
+        .sound-gate-card input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            text-align: center;
+        }
+
+        .sound-gate-card .pin-connect {
+            width: 100%;
+            margin-top: 14px;
+        }
+
+        .pin-error {
+            min-height: 20px;
+            margin-top: 8px;
+            color: #f44336;
+            font-size: 13px;
+        }
+
+        .match-pin {
+            text-align: center;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3c72;
+            letter-spacing: 2px;
+            margin-bottom: 10px;
+            cursor: pointer;
         }
 
         #wicket-flash {
@@ -174,8 +209,11 @@
 <body>
     <div class="sound-gate" id="soundGate">
         <div class="sound-gate-card">
-            Sound on
-            <div class="sound-gate-hint">Tap anywhere — phir events ki awaz aayegi</div>
+            Receiver
+            <div class="sound-gate-hint">4 digit code daalo, phir Connect</div>
+            <input id="pinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
+            <div class="pin-error" id="pinError"></div>
+            <button type="button" class="pin-connect" id="pinConnect">Connect</button>
         </div>
     </div>
     <div class="card">
@@ -184,6 +222,7 @@
         </div>
 
         <h1>🏏 Receiver</h1>
+        <div class="match-pin" id="matchPin" title="Code change"></div>
 
         <div class="sender-status sender-offline" id="senderStatus">
             <span class="sender-dot" id="senderDot"></span>
@@ -195,6 +234,8 @@
         let socket;
         let clearResultTimer = null;
         let soundReady = false;
+        let matchId = '';
+        let joined = false;
         const audioCache = {};
         const probe = document.createElement('audio');
         const audioExt = probe.canPlayType('audio/mpeg') ? '.mp3' : '.ogg';
@@ -237,11 +278,74 @@
             'THIRD UMPIRE': '/audio/third-umpire'
         };
 
+        function normalizePin(value) {
+            const digits = String(value || '').replace(/\D/g, '').slice(0, 4);
+            return digits.length === 4 ? digits : '';
+        }
+
         window.onload = function() {
             preloadAudio();
-            bindSoundGate();
-            createSocket();
+            initPinGate();
         };
+
+        function initPinGate() {
+            const input = document.getElementById('pinInput');
+            const connectBtn = document.getElementById('pinConnect');
+            const pinLabel = document.getElementById('matchPin');
+            const params = new URLSearchParams(window.location.search);
+            const preset = normalizePin(params.get('m'));
+            if (input && preset) input.value = preset;
+            if (input) {
+                input.addEventListener('input', () => {
+                    input.value = input.value.replace(/\D/g, '').slice(0, 4);
+                    setPinError('');
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') connectMatch();
+                });
+            }
+            if (connectBtn) connectBtn.addEventListener('click', connectMatch);
+            if (pinLabel) pinLabel.addEventListener('click', resetMatch);
+        }
+
+        function setPinError(message) {
+            const el = document.getElementById('pinError');
+            if (el) el.textContent = message || '';
+        }
+
+        function connectMatch() {
+            const input = document.getElementById('pinInput');
+            const pin = normalizePin(input && input.value);
+            if (!pin) {
+                setPinError('4 digit code daalo');
+                return;
+            }
+            matchId = pin;
+            joined = false;
+            const pinLabel = document.getElementById('matchPin');
+            if (pinLabel) pinLabel.textContent = pin;
+            unlockSound();
+            if (!socket) createSocket();
+            else joinMatch();
+        }
+
+        function resetMatch() {
+            joined = false;
+            matchId = '';
+            const pinLabel = document.getElementById('matchPin');
+            if (pinLabel) pinLabel.textContent = '';
+            updateSenderStatus({ enabled: false });
+            const gate = document.getElementById('soundGate');
+            if (gate) gate.classList.remove('hidden');
+            const input = document.getElementById('pinInput');
+            if (input) input.focus();
+        }
+
+        function joinMatch() {
+            if (socket && socket.connected && matchId) {
+                socket.emit('join', { matchId });
+            }
+        }
 
         function audioSrc(base) {
             return base + audioExt;
@@ -257,17 +361,12 @@
             });
         }
 
-        function bindSoundGate() {
-            const gate = document.getElementById('soundGate');
-            if (!gate) return;
-            const unlock = () => unlockSound();
-            gate.addEventListener('click', unlock);
-            gate.addEventListener('touchend', unlock, { passive: true });
-        }
-
         function unlockSound() {
-            if (soundReady) return;
             const gate = document.getElementById('soundGate');
+            if (soundReady) {
+                if (gate) gate.classList.add('hidden');
+                return;
+            }
             Object.values(audioCache).forEach((audio) => {
                 try {
                     audio.muted = true;
@@ -304,16 +403,35 @@
                 timeout: 20000
             });
 
+            socket.on('connect', () => {
+                if (matchId) joinMatch();
+            });
+
+            socket.on('joined', (data) => {
+                joined = !!(data && data.matchId === matchId);
+                if (!joined) setPinError('Code match nahi hua');
+            });
+
+            socket.on('join_error', (data) => {
+                joined = false;
+                setPinError((data && data.message) || 'Code match nahi hua');
+                const gate = document.getElementById('soundGate');
+                if (gate) gate.classList.remove('hidden');
+            });
+
             socket.on('event', (data) => {
+                if (!joined) return;
                 handleEvent(data);
             });
 
             socket.on('sender_status', (data) => {
+                if (!joined) return;
                 updateSenderStatus(data);
             });
         }
 
         function handleEvent(data) {
+            if(!joined) return;
             if(!data || typeof data !== 'object') return;
             const { type, payload } = data;
 
@@ -367,7 +485,7 @@
                 box.style.color = '#1e3c72';
                 box.style.textShadow = 'none';
                 clearResultTimer = null;
-            }, 10000);
+            }, 15000);
         }
 
         function updateSenderStatus(data) {

@@ -22,8 +22,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -33,8 +35,11 @@ import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.text.input.KeyboardType
+import android.content.Context
 import live.cricketdrs.sender.update.UpdateGate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -56,7 +61,6 @@ class MainActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         window.addFlags(WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        client.connect()
 
         setContent {
             SenderScreen(client)
@@ -77,12 +81,16 @@ private val RedOff = Color(0xFFF44336)
 @Composable
 fun SenderScreen(client: DrsClient) {
     val context = LocalContext.current
+    val prefs = remember { context.getSharedPreferences("cricketdrs", Context.MODE_PRIVATE) }
     val localOn by client.localConnected.collectAsState()
     val liveOn by client.liveConnected.collectAsState()
     val enabled by client.sendingEnabled.collectAsState()
+    val joined by client.joined.collectAsState()
+    val matchId by client.matchId.collectAsState()
     val error by client.lastError.collectAsState()
-    val connected = localOn || liveOn
+    val connected = joined && (localOn || liveOn)
     var updateTick by remember { mutableIntStateOf(0) }
+    var pinDraft by remember { mutableStateOf(prefs.getString("match_pin", "") ?: "") }
 
     UpdateGate(auto = true, manualTrigger = updateTick)
 
@@ -93,10 +101,14 @@ fun SenderScreen(client: DrsClient) {
         onDispose { }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
             .background(Brush.linearGradient(listOf(Navy, NavyDeep)))
+    ) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
             .systemBarsPadding()
             .background(Color(0xF5FFFFFF))
             .padding(6.dp)
@@ -117,6 +129,18 @@ fun SenderScreen(client: DrsClient) {
                     .padding(end = 8.dp)
                     .clickable { updateTick++ }
             )
+            if (joined) {
+                Text(
+                    text = matchId,
+                    color = Navy,
+                    fontWeight = FontWeight.Bold,
+                    fontSize = 16.sp,
+                    letterSpacing = 2.sp,
+                    modifier = Modifier
+                        .padding(end = 8.dp)
+                        .clickable { client.leaveMatch() }
+                )
+            }
             Switch(
                 checked = enabled,
                 onCheckedChange = { client.setSendingEnabled(it) },
@@ -161,7 +185,7 @@ fun SenderScreen(client: DrsClient) {
                         rowItems.forEach { event ->
                             EventButton(
                                 event = event,
-                                enabled = enabled,
+                                enabled = enabled && joined,
                                 modifier = Modifier
                                     .weight(1f)
                                     .fillMaxHeight()
@@ -176,6 +200,63 @@ fun SenderScreen(client: DrsClient) {
                 }
             }
         }
+    }
+
+    if (!joined) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(Brush.linearGradient(listOf(Navy, NavyDeep)))
+                .systemBarsPadding()
+                .padding(24.dp),
+            verticalArrangement = Arrangement.Center,
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text(
+                text = "Sender",
+                color = Color.White,
+                fontWeight = FontWeight.Bold,
+                fontSize = 26.sp
+            )
+            Text(
+                text = "4 digit code daalo, phir Connect",
+                color = Color.White.copy(alpha = 0.85f),
+                fontSize = 15.sp,
+                modifier = Modifier.padding(top = 8.dp, bottom = 20.dp)
+            )
+            OutlinedTextField(
+                value = pinDraft,
+                onValueChange = { pinDraft = it.filter { ch -> ch.isDigit() }.take(4) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                modifier = Modifier.fillMaxWidth(),
+                colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
+                    focusedTextColor = Color.White,
+                    unfocusedTextColor = Color.White,
+                    focusedBorderColor = Color.White,
+                    unfocusedBorderColor = Color.White.copy(alpha = 0.6f),
+                    cursorColor = Color.White
+                )
+            )
+            Button(
+                onClick = {
+                    val pin = client.normalizePin(pinDraft)
+                    if (pin.length != 4) {
+                        Toast.makeText(context, "4 digit code daalo", Toast.LENGTH_SHORT).show()
+                        return@Button
+                    }
+                    prefs.edit().putString("match_pin", pin).apply()
+                    client.connect(pin)
+                },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 16.dp),
+                colors = ButtonDefaults.buttonColors(containerColor = Color.White, contentColor = Navy)
+            ) {
+                Text("Connect", fontWeight = FontWeight.Bold, fontSize = 16.sp)
+            }
+        }
+    }
     }
 }
 

@@ -1,9 +1,9 @@
 {
-  "versionName": "1.0.2",
-  "versionCode": 3,
-  "androidVersion": "1.0.2",
-  "androidVersionCode": 3,
-  "releaseNotes": "Third Umpire button and Dapp commentary sounds.",
+  "versionName": "1.0.3",
+  "versionCode": 4,
+  "androidVersion": "1.0.3",
+  "androidVersionCode": 4,
+  "releaseNotes": "4-digit match code: sender and receiver join first, then connect.",
   "apkUrl": "/downloads/cricket-drs.apk",
   "force": false
 }

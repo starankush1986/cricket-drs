@@ -109,6 +109,79 @@
             box-shadow: 0 0 8px rgba(244, 67, 54, 0.9);
         }
 
+        .match-pin {
+            min-width: 48px;
+            font-size: 14px;
+            font-weight: 700;
+            color: #1e3c72;
+            letter-spacing: 2px;
+            cursor: pointer;
+        }
+
+        .pin-gate {
+            position: fixed;
+            inset: 0;
+            z-index: 30;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+        }
+
+        .pin-gate.hidden { display: none; }
+
+        .pin-gate-card {
+            width: min(360px, 92vw);
+            background: #fff;
+            border-radius: 16px;
+            padding: 24px 20px;
+            text-align: center;
+        }
+
+        .pin-gate-card h2 {
+            color: #1e3c72;
+            font-size: 22px;
+            margin-bottom: 8px;
+        }
+
+        .pin-gate-card p {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 16px;
+        }
+
+        .pin-gate-card input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #1e3c72;
+            border-radius: 8px;
+            font-size: 28px;
+            font-weight: 700;
+            letter-spacing: 8px;
+            text-align: center;
+        }
+
+        .pin-gate-card button {
+            width: 100%;
+            margin-top: 14px;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            background: #1e3c72;
+            color: #fff;
+            font-size: 16px;
+            font-weight: 700;
+            cursor: pointer;
+        }
+
+        .pin-error {
+            min-height: 20px;
+            margin-top: 8px;
+            color: #f44336;
+            font-size: 13px;
+            font-weight: 700;
+        }
+
         .section {
             flex: 1 1 auto;
             min-height: 0;
@@ -180,14 +253,24 @@
     </style>
 </head>
 <body>
+    <div class="pin-gate" id="pinGate">
+        <div class="pin-gate-card">
+            <h2>Sender</h2>
+            <p>4 digit code daalo, phir Connect</p>
+            <input id="pinInput" type="tel" inputmode="numeric" maxlength="4" autocomplete="off" placeholder="0000">
+            <div class="pin-error" id="pinError"></div>
+            <button type="button" id="pinConnect">Connect</button>
+        </div>
+    </div>
     <div class="card">
         <div class="top-bar">
             <span class="top-bar-label">Sender</span>
+            <span class="match-pin" id="matchPin" title="Code change"></span>
             <label class="toggle-switch" aria-label="Toggle sender on or off">
                 <input type="checkbox" id="senderToggle" checked>
                 <span class="toggle-slider"></span>
             </label>
-            <div class="status-light" id="statusLight"></div>
+            <div class="status-light disconnected" id="statusLight"></div>
         </div>
         <!-- EVENTS -->
         <div class="section" id="events-panel">
@@ -235,7 +318,14 @@
         let socket;
         let liveSocket;
         let sendingEnabled = true;
+        let matchId = '';
+        let joined = false;
         const LIVE_API_URL = 'https://api.cricketking.live';
+
+        function normalizePin(value) {
+            const digits = String(value || '').replace(/\D/g, '').slice(0, 4);
+            return digits.length === 4 ? digits : '';
+        }
 
         function fitScreen() {
             document.documentElement.style.setProperty('--app-height', window.innerHeight + 'px');
@@ -244,32 +334,95 @@
         window.onload = function() {
             fitScreen();
             window.addEventListener('resize', fitScreen);
-            createSocket();
-            createLiveSocket();
+            initPinGate();
             initToggle();
+            setButtonsEnabled(false);
         };
+
+        function initPinGate() {
+            const input = document.getElementById('pinInput');
+            const connectBtn = document.getElementById('pinConnect');
+            const pinLabel = document.getElementById('matchPin');
+            const params = new URLSearchParams(window.location.search);
+            const preset = normalizePin(params.get('m'));
+            if (input && preset) input.value = preset;
+
+            if (input) {
+                input.addEventListener('input', () => {
+                    input.value = input.value.replace(/\D/g, '').slice(0, 4);
+                    setPinError('');
+                });
+                input.addEventListener('keydown', (e) => {
+                    if (e.key === 'Enter') connectMatch();
+                });
+            }
+            if (connectBtn) connectBtn.addEventListener('click', connectMatch);
+            if (pinLabel) pinLabel.addEventListener('click', resetMatch);
+        }
+
+        function setPinError(message) {
+            const el = document.getElementById('pinError');
+            if (el) el.textContent = message || '';
+        }
+
+        function connectMatch() {
+            const input = document.getElementById('pinInput');
+            const pin = normalizePin(input && input.value);
+            if (!pin) {
+                setPinError('4 digit code daalo');
+                return;
+            }
+            matchId = pin;
+            joined = false;
+            const pinLabel = document.getElementById('matchPin');
+            if (pinLabel) pinLabel.textContent = pin;
+            const gate = document.getElementById('pinGate');
+            if (gate) gate.classList.add('hidden');
+            ensureSockets();
+            joinMatch();
+        }
+
+        function resetMatch() {
+            joined = false;
+            matchId = '';
+            setButtonsEnabled(false);
+            const light = document.getElementById('statusLight');
+            if (light) light.classList.add('disconnected');
+            const pinLabel = document.getElementById('matchPin');
+            if (pinLabel) pinLabel.textContent = '';
+            const gate = document.getElementById('pinGate');
+            if (gate) gate.classList.remove('hidden');
+            const input = document.getElementById('pinInput');
+            if (input) input.focus();
+        }
+
+        function joinMatch() {
+            if (socket && socket.connected && matchId) {
+                socket.emit('join', { matchId });
+            }
+        }
 
         function initToggle() {
             const toggle = document.getElementById('senderToggle');
             if(!toggle) return;
 
             sendingEnabled = toggle.checked;
-            setButtonsEnabled(sendingEnabled);
+            setButtonsEnabled(joined && sendingEnabled);
             emitSenderStatus(sendingEnabled);
 
             toggle.addEventListener('change', () => {
                 sendingEnabled = toggle.checked;
-                setButtonsEnabled(sendingEnabled);
+                setButtonsEnabled(joined && sendingEnabled);
                 emitSenderStatus(sendingEnabled);
             });
         }
 
         function emitSenderStatus(enabled) {
-            if(socket && socket.connected) {
+            if(socket && socket.connected && joined) {
                 socket.emit('sender_status', { enabled: !!enabled });
             }
 
-            if(enabled && liveSocket && liveSocket.connected) {
+            if(enabled && liveSocket && liveSocket.connected && joined) {
                 liveSocket.emit('iam_sender');
             }
         }
@@ -280,6 +433,11 @@
                 btn.disabled = !enabled;
                 btn.style.opacity = enabled ? '1' : '0.5';
             });
+        }
+
+        function ensureSockets() {
+            if (!socket) createSocket();
+            if (!liveSocket) createLiveSocket();
         }
 
         function createSocket() {
@@ -293,14 +451,33 @@
             });
 
             socket.on('connect', () => {
-                const light = document.getElementById('statusLight');
-                if(light) light.classList.remove('disconnected');
-                emitSenderStatus(sendingEnabled);
+                if (matchId) joinMatch();
             });
 
-            socket.on('disconnect', (reason) => {
+            socket.on('joined', (data) => {
+                joined = !!(data && data.matchId === matchId);
+                const light = document.getElementById('statusLight');
+                if (light) {
+                    if (joined) light.classList.remove('disconnected');
+                    else light.classList.add('disconnected');
+                }
+                setButtonsEnabled(joined && sendingEnabled);
+                if (joined) emitSenderStatus(sendingEnabled);
+            });
+
+            socket.on('join_error', (data) => {
+                joined = false;
+                setButtonsEnabled(false);
+                setPinError((data && data.message) || 'Code match nahi hua');
+                const gate = document.getElementById('pinGate');
+                if (gate) gate.classList.remove('hidden');
+            });
+
+            socket.on('disconnect', () => {
+                joined = false;
                 const light = document.getElementById('statusLight');
                 if(light) light.classList.add('disconnected');
+                setButtonsEnabled(false);
             });
 
             socket.on('connect_error', (err) => {
@@ -319,7 +496,7 @@
             });
 
             liveSocket.on('connect', () => {
-                if(sendingEnabled) {
+                if(sendingEnabled && joined) {
                     liveSocket.emit('iam_sender');
                 }
             });
@@ -330,7 +507,7 @@
         }
 
         function sendEvent(eventName) {
-            if(!sendingEnabled) {
+            if(!sendingEnabled || !joined) {
                 return;
             }
 
